@@ -35,27 +35,25 @@ Created a custom test set for more reliable evaluation.
 
 ## Installation
 1. Clone the repository:
-   
-   ```git clone https://github.com/alt4ble/Drought-and-Irrigation-Analysis.git```
-   
-   ```cd Drought-and-Irrigation-Analysis```
+   ```bash
+   git clone https://github.com/alt4ble/Drought-and-Irrigation-Analysis.git
+   cd Drought-and-Irrigation-Analysis
 
 3. Install dependencies:
-   
-   ```pip install -r requirements.txt```
+   ```bash
+   pip install -r requirements.txt
 
 4. Train the Model:
-   
-   ```python train.py```
+   ```bash
+   python train.py
 
 5. Evaluate:
-   
-   ```python evaluate.py```
+   ```bash
+   python evaluate.py
 
 ## Usage
 Run the training script:
-
-```bash python scripts/training.py```
+   ```bash python scripts/training.py```
 
 The script will:
 - Download the dataset if not present
@@ -69,11 +67,11 @@ The script will:
 
 - Classification Report:
 
-![Confusion Matrix](images/classification_report.png)
+![Classification_Report](images/classification_report.png)
 
 - Confusion Matrix:
 
-![Classification Report](images/confusion_matrix.png)
+![Confusion Matrix](images/confusion_matrix.png)
 
 - Test Accuracy & Loss Graphs:
 
