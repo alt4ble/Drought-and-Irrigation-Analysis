@@ -62,10 +62,11 @@ The script will:
 - Accuracy: %79
 
 - Classification Report:
-![Confusion Matrix](images/confusion_matrix.png)
+![Confusion Matrix](images/classification_report.png)
 
 - Confusion Matrix:
-![Classification Report](images/classification_report.png)
+![Classification Report](images/confusion_matrix.png)
 
 - Test Accuracy & Loss Graphs:
-![Accuracy & Loss Graph](images/accuracy_loss.png)
+![Accuracy Graph](images/accuracy_graph.png)
+![Loss Graph](images/loss_graph.png)
