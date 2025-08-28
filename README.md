@@ -9,7 +9,7 @@ Used class weights to balance class distribution during training.
 Created a custom test set for more reliable evaluation.
 
 ## Tech Stack
-- Python 3.12
+- Python 3.13
 - TensorFlow / Keras
 - scikit-learn
 - OpenCV
@@ -27,7 +27,7 @@ Created a custom test set for more reliable evaluation.
 - Dense layers with Dropout for regularization
 
 ## Requirements
-- Python 3.8+
+- Python 3.13
 - TensorFlow / Keras
 - scikit-learn
 - matplotlib, seaborn
