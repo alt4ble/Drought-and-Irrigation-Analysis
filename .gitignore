@@ -1,207 +1,281 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[codz]
-*$py.class
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout
+from sklearn.metrics import confusion_matrix, classification_report
+from keras.src.legacy.preprocessing.image import ImageDataGenerator
+from sklearn.utils.class_weight import compute_class_weight
+from keras.src.applications.densenet import DenseNet121
+from keras.src.callbacks import EarlyStopping
+from keras.callbacks import ReduceLROnPlateau
+from tensorflow.keras.optimizers import Adam
+from keras.models import Model, load_model
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import requests
+import zipfile
+import pickle
+import io
+import os
+from sklearn.model_selection import train_test_split
+import shutil
+from keras.preprocessing.image import img_to_array, load_img
 
-# C extensions
-*.so
+# Uploading Dataset
+if not os.path.exists("dataset"):
+    url = "https://universe.roboflow.com/ds/Yr13ewBq6a?key=UpZncS97Tq"
+    r = requests.get(url)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    z.extractall("dataset")
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# Combine Train and Valid
+all_dir = "dataset/all_data"
+if not os.path.exists(all_dir):
+    os.makedirs(all_dir)
+    for split in ["train", "valid"]:
+        for cls in os.listdir(f"dataset/{split}"):
+            src = f"dataset/{split}/{cls}"
+            dst = f"{all_dir}/{cls}"
+            os.makedirs(dst, exist_ok=True)
+            for f in os.listdir(src):
+                shutil.copy(os.path.join(src, f), dst)
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+# File list and Tags
+dry_files = [("dry", f) for f in os.listdir(f"{all_dir}/dry")]
+wet_files = [("wet", f) for f in os.listdir(f"{all_dir}/wet")]
+data = dry_files + wet_files
+labels = [cls for cls, _ in data]
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# Split Data
+train, test = train_test_split(
+    data, test_size=0.15, stratify=labels, random_state=42
+)
+train, valid = train_test_split(
+    train, test_size=0.15, stratify=[cls for cls, _ in train], random_state=42
+)
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py.cover
-.hypothesis/
-.pytest_cache/
-cover/
+# Create New Folders
+base_split_dir = "dataset/split_data"
+for split_name, split_data in [("train", train), ("valid", valid), ("test", test)]:
+    for cls, fname in split_data:
+        src = os.path.join(all_dir, cls, fname)
+        dst = os.path.join(base_split_dir, split_name, cls)
+        os.makedirs(dst, exist_ok=True)
+        shutil.copy(src, dst)
 
-# Translations
-*.mo
-*.pot
+train_dir = "dataset/split_data/train"
+valid_dir = "dataset/split_data/valid"
+test_dir = "dataset/split_data/test"
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+# ImageDataGenerator
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=30,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    zoom_range=0.3,
+    brightness_range=[0.7, 1.3],
+    horizontal_flip=True,
+    vertical_flip=True,
+    shear_range=0.2,
+    channel_shift_range=20
+)
 
-# Flask stuff:
-instance/
-.webassets-cache
+train_generator = train_datagen.flow_from_directory(
+    train_dir,
+    target_size=(224, 224),
+    batch_size=32,
+    class_mode='categorical'
+)
 
-# Scrapy stuff:
-.scrapy
+valid_datagen = ImageDataGenerator(rescale=1./255)
+valid_generator = valid_datagen.flow_from_directory(
+    valid_dir,
+    target_size=(224, 224),
+    batch_size=32,
+    class_mode='categorical'
+)
 
-# Sphinx documentation
-docs/_build/
+test_datagen = ImageDataGenerator(rescale=1./255)
+test_generator = test_datagen.flow_from_directory(
+    test_dir,
+    target_size=(224, 224),
+    batch_size=32,
+    class_mode='categorical',
+    shuffle=False
+)
 
-# PyBuilder
-.pybuilder/
-target/
+augment_datagen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=30,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    zoom_range=0.25,
+    brightness_range=[0.7, 1.3],
+    horizontal_flip=True,
+    shear_range=0.2,
+    channel_shift_range=20
+)
 
-# Jupyter Notebook
-.ipynb_checkpoints
+wet_dir = os.path.join(train_dir, "wet")
+augmented_wet_dir = os.path.join(train_dir, "wet")
+wet_images = os.listdir(wet_dir)
+print(f"Original number of wet images: {len(wet_images)}")
+num_augmented = len(wet_images) // 2
 
-# IPython
-profile_default/
-ipython_config.py
+i = 0
+for img_name in wet_images:
+    img_path = os.path.join(wet_dir, img_name)
+    img = load_img(img_path, target_size=(224, 224))
+    x = img_to_array(img)
+    x = x.reshape((1,) + x.shape)
 
-# pyenv
-#   For a library or package, you might want to ignore these files since the code is
-#   intended to run in multiple environments; otherwise, check them in:
-# .python-version
+    for batch in augment_datagen.flow(x, batch_size=1, save_to_dir=augmented_wet_dir,
+                                      save_prefix="aug", save_format="jpg"):
+        i += 1
+        if i >= num_augmented:
+            break
+    if i >= num_augmented:
+        break
+print(f"Number of newly produced wet images: {num_augmented}")
+print(f"Total number of wet images: {len(os.listdir(wet_dir))}")
 
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
+class_weights = compute_class_weight(
+    class_weight='balanced',
+    classes=np.unique(train_generator.classes),
+    y=train_generator.classes
+)
+class_weights = dict(enumerate(class_weights))
+print(class_weights)
 
-# UV
-#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#uv.lock
+# Model Training or Uploading
+history = None
+history_ft = None
 
-# poetry
-#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
-#poetry.lock
-#poetry.toml
+if not os.path.exists("final_model.keras"):
+    print("Starting to train a model")
 
-# pdm
-#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
-#   pdm recommends including project-wide configuration in pdm.toml, but excluding .pdm-python.
-#   https://pdm-project.org/en/latest/usage/project/#working-with-version-control
-#pdm.lock
-#pdm.toml
-.pdm-python
-.pdm-build/
+    # --- Base Model ---
+    base_model = DenseNet121(weights="imagenet",
+                             include_top=False,
+                             input_shape=(224, 224, 3))
+    for layer in base_model.layers:
+        layer.trainable = False
 
-# pixi
-#   Similar to Pipfile.lock, it is generally recommended to include pixi.lock in version control.
-#pixi.lock
-#   Pixi creates a virtual environment in the .pixi directory, just like venv module creates one
-#   in the .venv directory. It is recommended not to include this directory in version control.
-.pixi
+    x = base_model.output
+    x = GlobalAveragePooling2D()(x)
+    x = Dropout(0.5)(x)
+    x = Dense(256, activation="relu")(x)
+    x = Dropout(0.4)(x)
+    predictions = Dense(2, activation='softmax')(x)
+    model = Model(inputs=base_model.input, outputs=predictions)
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
+    model.compile(
+        optimizer=Adam(learning_rate=1e-4),
+        loss='categorical_crossentropy',
+        metrics=['accuracy']
+    )
 
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5,
+                                  patience=3, min_lr=1e-7, verbose=1)
 
-# SageMath parsed files
-*.sage.py
+    callbacks = [
+        EarlyStopping(monitor='val_loss', patience=10,
+                      restore_best_weights=True),
+        reduce_lr
+    ]
 
-# Environments
-.env
-.envrc
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+    history = model.fit(
+        train_generator,
+        validation_data=valid_generator,
+        epochs=30,
+        steps_per_epoch=len(train_generator),
+        callbacks=callbacks,
+        class_weight=class_weights
+    )
 
-# Spyder project settings
-.spyderproject
-.spyproject
+    # Fine-Tuning
+    for layer in base_model.layers[-50:]:
+        layer.trainable = True
 
-# Rope project settings
-.ropeproject
+    model.compile(
+        optimizer=Adam(learning_rate=1e-5),
+        loss='categorical_crossentropy',
+        metrics=['accuracy']
+    )
 
-# mkdocs documentation
-/site
+    callbacks_ft = [
+        EarlyStopping(monitor='val_loss', patience=10,
+                      restore_best_weights=True),
+        reduce_lr
+    ]
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+    history_ft = model.fit(
+        train_generator,
+        validation_data=valid_generator,
+        epochs=30,
+        callbacks=callbacks_ft
+    )
 
-# Pyre type checker
-.pyre/
+    model.save("final_model.keras")
+    print("Training completed. Model saved as final_model.keras")
 
-# pytype static type analyzer
-.pytype/
+    with open("history.pkl", "wb") as f:
+        pickle.dump((history.history, history_ft.history), f)
+else:
+    model = load_model("final_model.keras")
+    print("Training skipped, model loaded as final_model.keras")
 
-# Cython debug symbols
-cython_debug/
+    if os.path.exists("history.pkl"):
+        with open("history.pkl", "rb") as f:
+            h1, h2 = pickle.load(f)
+        history = type("History", (), {"history": h1})()
+        history_ft = type("History", (), {"history": h2})()
 
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+test_loss, test_accuracy = model.evaluate(test_generator)
+print(f"\nTest Accuracy: {test_accuracy:.2f}")
 
-# Abstra
-# Abstra is an AI-powered process automation framework.
-# Ignore directories containing user credentials, local state, and settings.
-# Learn more at https://abstra.io/docs
-.abstra/
+Y_pred = model.predict(test_generator)
+y_pred_classes = np.argmax(Y_pred, axis=1)
+y_true = test_generator.classes
 
-# Visual Studio Code
-#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
-#  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
-#  and can be added to the global gitignore or merged into this file. However, if you prefer, 
-#  you could uncomment the following to ignore the entire vscode folder
-# .vscode/
+class_indices_sorted = sorted(test_generator.class_indices.items(), key=lambda item: item[1])
+class_labels = [class_name for class_name, _ in class_indices_sorted]
 
-# Ruff stuff:
-.ruff_cache/
+print("\nClassification Report:")
+print(classification_report(y_true, y_pred_classes, target_names=class_labels))
 
-# PyPI configuration file
-.pypirc
+# Confusion Matrix
+y_true_labels = [class_labels[i] for i in y_true]
+y_pred_labels = [class_labels[i] for i in y_pred_classes]
+cm = confusion_matrix(y_true_labels, y_pred_labels, labels=class_labels)
+cm_rotated = cm[::-1, :]
+plt.figure(figsize=(6, 6))
+sns.heatmap(cm_rotated, annot=True, fmt="d", cmap="Blues",
+            xticklabels=[f"{c}" for c in class_labels],
+            yticklabels=[f"{c}" for c in class_labels[::-1]],
+            cbar=False, square=True)
+plt.title("Confusion Matrix")
+plt.ylabel("True Label")
+plt.xlabel("Predicted Label")
+plt.show()
 
-# Cursor
-#  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
-#  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
-#  refer to https://docs.cursor.com/context/ignore-files
-.cursorignore
-.cursorindexingignore
+# Accuracy Graphs
+if history is not None and history_ft is not None:
+    train_acc = history.history['accuracy'] + history_ft.history['accuracy']
+    val_acc = history.history['val_accuracy'] + history_ft.history['val_accuracy']
+    plt.plot(train_acc, label='Train Accuracy')
+    plt.plot(val_acc, label='Valid Accuracy')
+    plt.title('Model Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.show()
 
-# Marimo
-marimo/_static/
-marimo/_lsp/
-__marimo__/
+    train_loss = history.history['loss'] + history_ft.history['loss']
+    val_loss = history.history['val_loss'] + history_ft.history['val_loss']
+    plt.plot(train_loss, label='Train Loss')
+    plt.plot(val_loss, label='Valid Loss')
+    plt.title('Model Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
