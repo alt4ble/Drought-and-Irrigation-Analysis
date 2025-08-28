@@ -31,23 +31,29 @@ Created a custom test set for more reliable evaluation.
    ```bash
    git clone https://github.com/alt4ble/Drought-and-Irrigation-Analysis.git
    cd Drought-and-Irrigation-Analysis
+   ```
 
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
+   ```
 
 4. Train the Model:
    ```bash
    python train.py
+   ```
 
 5. Evaluate:
    ```bash
    python evaluate.py
+   ```
 
 ## Usage
 Run the training script:
 
-   ```python scripts/training.py```
+   ```bash
+   python scripts/training.py
+   ```
 
 The script will:
 - Download the dataset if not present
