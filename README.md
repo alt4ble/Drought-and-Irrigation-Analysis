@@ -62,11 +62,10 @@ The script will:
 - Accuracy: %79
 
 - Classification Report:
-<img width="543" height="251" alt="v10_4" src="https://github.com/user-attachments/assets/47d71ec1-f392-4f0e-bf18-c18bcb02cba5" />
+![Confusion Matrix](images/confusion_matrix.png)
 
 - Confusion Matrix:
-<img width="600" height="600" alt="v10_1" src="https://github.com/user-attachments/assets/701c3e68-f8b3-47dc-8f8b-a87168d1987a" />
+![Classification Report](images/classification_report.png)
 
 - Test Accuracy & Loss Graphs:
-<img width="640" height="480" alt="v10_2" src="https://github.com/user-attachments/assets/ad97f2ab-774a-4e04-a0e2-16983bc34f9a" />
-<img width="640" height="480" alt="v10_3" src="https://github.com/user-attachments/assets/94fe55a6-4518-4913-a650-e2d634eb9e93" />
+![Accuracy & Loss Graph](images/accuracy_loss.png)
