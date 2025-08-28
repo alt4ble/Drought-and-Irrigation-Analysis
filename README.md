@@ -53,6 +53,7 @@ Created a custom test set for more reliable evaluation.
 
 ## Usage
 Run the training script:
+
    ```bash python scripts/training.py```
 
 The script will:
