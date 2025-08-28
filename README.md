@@ -37,17 +37,18 @@ Created a custom test set for more reliable evaluation.
 1. Clone the repository:
    
    ```git clone https://github.com/alt4ble/Drought-and-Irrigation-Analysis.git```
+   
    ```cd Drought-and-Irrigation-Analysis```
 
-2. Install dependencies:
+3. Install dependencies:
    
    ```pip install -r requirements.txt```
 
-3. Train the Model:
+4. Train the Model:
    
    ```python train.py```
 
-4. Evaluate:
+5. Evaluate:
    
    ```python evaluate.py```
 
