@@ -54,7 +54,7 @@ Created a custom test set for more reliable evaluation.
 ## Usage
 Run the training script:
 
-   ```bash python scripts/training.py```
+   ```python scripts/training.py```
 
 The script will:
 - Download the dataset if not present
