@@ -8,13 +8,6 @@ Applied data augmentation to improve generalization, with extra emphasis on the 
 Used class weights to balance class distribution during training.
 Created a custom test set for more reliable evaluation.
 
-## Tech Stack
-- Python 3.13
-- TensorFlow / Keras
-- scikit-learn
-- OpenCV
-- Matplotlib/Seaborn
-
 ## Dataset
 - Dataset Source: Soil Moisture Classification Dataset by Chanakya Project
 - https://universe.roboflow.com/chanakya-project/soil-moisture/dataset/4
