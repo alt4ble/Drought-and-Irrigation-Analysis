@@ -115,28 +115,39 @@ augment_datagen = ImageDataGenerator(
     channel_shift_range=20
 )
 
-wet_dir = os.path.join(train_dir, "wet")
-augmented_wet_dir = os.path.join(train_dir, "wet")
-wet_images = os.listdir(wet_dir)
-print(f"Original number of wet images: {len(wet_images)}")
-num_augmented = len(wet_images) // 2
+augmented_flag_file = os.path.join(train_dir, "augmentation_done.txt")
+if not os.path.exists(augmented_flag_file):
+    wet_dir = os.path.join(train_dir, "wet")
+    augmented_wet_dir = wet_dir
 
-i = 0
-for img_name in wet_images:
-    img_path = os.path.join(wet_dir, img_name)
-    img = load_img(img_path, target_size=(224, 224))
-    x = img_to_array(img)
-    x = x.reshape((1,) + x.shape)
+    wet_images = [f for f in os.listdir(wet_dir) if not f.startswith("aug")]
+    print(f"Original number of wet images: {len(wet_images)}")
+    num_augmented = len(wet_images) // 2
 
-    for batch in augment_datagen.flow(x, batch_size=1, save_to_dir=augmented_wet_dir,
-                                      save_prefix="aug", save_format="jpg"):
-        i += 1
+    i = 0
+    for img_name in wet_images:
+        img_path = os.path.join(wet_dir, img_name)
+        img = load_img(img_path, target_size=(224, 224))
+        x = img_to_array(img)
+        x = x.reshape((1,) + x.shape)
+
+        for batch in augment_datagen.flow(x, batch_size=1, save_to_dir=augmented_wet_dir,
+                                          save_prefix="aug", save_format="jpg"):
+            i += 1
+            if i >= num_augmented:
+                break
         if i >= num_augmented:
             break
-    if i >= num_augmented:
-        break
-print(f"Number of newly produced wet images: {num_augmented}")
-print(f"Total number of wet images: {len(os.listdir(wet_dir))}")
+
+    with open(augmented_flag_file, "w") as f:
+        f.write("done")
+
+    print(f"Number of newly produced wet images: {num_augmented}")
+    print(f"Total number of wet images: {len(os.listdir(wet_dir))}")
+else:
+    print("Augmentation already done, skipping this step.")
+
+wet_dir = os.path.join(train_dir, "wet")
 
 class_weights = compute_class_weight(
     class_weight='balanced',
