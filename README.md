@@ -26,35 +26,7 @@ Created a custom test set for more reliable evaluation.
 - matplotlib, seaborn
 - numpy, requests, zipfile, shutil
 
-## Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/alt4ble/Drought-and-Irrigation-Analysis.git
-   cd Drought-and-Irrigation-Analysis
-   ```
-
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Train the Model:
-   ```bash
-   python train.py
-   ```
-
-5. Evaluate:
-   ```bash
-   python evaluate.py
-   ```
-
 ## Usage
-Run the training script:
-
-   ```bash
-   python scripts/training.py
-   ```
-
 The script will:
 - Download the dataset if not present
 - Split the dataset into train/valid/test
